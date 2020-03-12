@@ -17,12 +17,12 @@ Displays the numeric Facebook user ID inside the timeline cover right below the 
 Scrolls the user's timeline to the very beginning automatically.
 
 ### Expand hidden contents
-wip
+wip; coming soon.
 
 ### Clear timeline
 Removes boxes and buttons with unwanted content for printing the user's profile.
 
-### Jump to page bottom / Jump to page to
+### Jump to page bottom / Jump to page
 Self-explaining.
 
 ### Force page reload
