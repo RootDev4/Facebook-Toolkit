@@ -16,8 +16,8 @@ Displays the numeric Facebook user ID inside the timeline cover right below the 
 ### Scroll user timeline
 Scrolls the user's timeline to the very beginning automatically.
 
-### Expand hidden contents
-wip; coming soon.
+### Expand hidden content
+Expands hidden content like "See more" text or covered comments.
 
 ### Clear timeline
 Removes boxes and buttons with unwanted content for printing the user's profile.

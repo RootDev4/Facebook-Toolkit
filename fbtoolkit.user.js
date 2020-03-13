@@ -20,6 +20,21 @@ function alertError(exception, message) {
 }
 
 /**
+ * Set script status
+ * @param {*} value Status can be true (running) or false (idle)
+ */
+function setStatus(value) {
+    window.sessionStorage.setItem('fbToolkitStatus', value)
+}
+
+/**
+ * Get script status
+ */
+function getStatus() {
+    return window.sessionStorage.getItem('fbToolkitStatus')
+}
+
+/**
  * Get numeric Facebook user ID
  */
 function getUserId() {
@@ -49,6 +64,7 @@ function showUserId() {
  * Scroll user timeline
  */
 function scrollTimeline() {
+    setStatus(true)
     let task = null
     try {
         task = setInterval(() => {
@@ -57,6 +73,8 @@ function scrollTimeline() {
                 clearInterval(task)
                 window.scrollBy(0, document.body.scrollHeight)
                 window.scrollTo(0, 0)
+                setStatus(false)
+                alert('Auto scrolling finished')
             }
         }, 100)
     } catch (exception) {
@@ -65,14 +83,39 @@ function scrollTimeline() {
 }
 
 /**
- * Hide an element from DOM
- * @param {*} item DOM node
- */
-function hide(element) {
-    try {
-        if (element != null) {
-            element.style.display = 'none'
+ * Expand hidden content like comments etc.
+ */ 
+function expandTimeline() {
+    setStatus(true)
+    let expand = setInterval(() => {
+        document.querySelectorAll('a._4sxc._42ft, a._5v47.fss, a.see_more_link').forEach(node => node.click())
+        if (!document.querySelectorAll('a._4sxc._42ft').length) {
+            clearInterval(expand)
+            window.scrollTo(0, 0)
+            setStatus(false)
+            alert('All content expanded')
         }
+    }, 100)
+}
+
+/**
+ * Hide an element from DOM
+ * @param {*} cssSelector DOM node identified by CSS selector
+ */
+function hide(cssSelector) {
+    try {
+        let selector = cssSelector
+        let pNode = false
+        if (selector.includes(':parent')) {
+            pNode = true
+            selector = selector.replace(':parent', '')
+        }
+        document.querySelectorAll(selector).forEach(element => {
+            if (element != null) {
+                if (pNode) element = element.parentNode
+                element.style.display = 'none'
+            }
+        })
     } catch (exception) {}
 }
 
@@ -80,13 +123,18 @@ function hide(element) {
  * Clear/anonymize timeline
  */
 function clearTimeline() {
-    hide(document.getElementById('pagelet_bluebar'))
-    hide(document.getElementById('pagelet_timeline_profile_actions'))
-    hide(document.getElementById('timeline_sticky_header_container'))
-    hide(document.querySelector('ul[data-referrer="timeline_light_nav_top"]'))
-    hide(document.getElementById('pagelet_escape_hatch'))
-    hide(document.getElementById('pagelet_pymk_timeline'))
-    hide(document.getElementById('pagelet_timeline_composer'))
+    hide('form.commentable_item div._1dnh') // Like/Share buttons
+    hide('form.commentable_item div:last-child > div.clearfix') // Comment input field
+    hide('button.PageLikeButton:parent') // "Like Page" button
+    hide('a[data-testid="post_chevron_button"]:parent') // Post options menu
+    hide('div#pagelet_bluebar') // Facebook top bluebar
+    hide('div#pagelet_timeline_profile_actions')
+    hide('div#profile_timeline_overview_switcher_pagelet')
+    hide('div#timeline_sticky_header_container')
+    hide('ul[data-referrer="timeline_light_nav_top"]')
+    hide('div#pagelet_escape_hatch') // Follow profile
+    hide('div#pagelet_pymk_timeline')
+    hide('div#pagelet_timeline_composer')
     // Add more elements here...
 }
 
@@ -108,12 +156,14 @@ async function init() {
                             <li style="padding: 3px"><a href="#" id="fbToolkitUserId">Get numeric user ID</a></li>
                             <li style="padding: 3px"><a href="#" id="fbToolkitIdCover">Show user ID on cover</a></li>
                             <li style="padding: 3px"><a href="#" id="fbToolkitScroll">Scroll user timeline</a></li>
-                            <li style="padding: 3px"><a href="#" id="fbToolkitExpand">Expand hidden contents</a></li>
-                            <li style="padding: 3px"><a href="#" id="fbToolkitClear">Clear timeline</a></li>
+                            <li style="padding: 3px"><a href="#" id="fbToolkitExpand">Expand hidden content</a></li>
+                            <li style="padding: 3px"><a href="#" id="fbToolkitClear">Clear user profile</a></li>
                             <hr>
                             <li style="padding: 3px"><a href="#" onclick="window.scrollTo(0, body.scrollHeight)">Jump to page bottom</a></li>
                             <li style="padding: 3px"><a href="#" onclick="window.scrollTo(0, 0)">Jump to page top</a></li>
                             <li style="padding: 3px"><a href="#" onclick="location.reload(true)">Force page reload</a></li>
+                            <hr>
+                            <li style="padding: 3px"><a href="https://github.com/RootDev4/Facebook-Toolkit" target="_blank">About & Help</a></li>
                         </ul>
                     </div>
                 </div>`
@@ -131,6 +181,6 @@ init().then(() => {
     document.querySelector('a#fbToolkitUserId').addEventListener('click', () => alert(getUserId()))
     document.querySelector('a#fbToolkitIdCover').addEventListener('click', () => showUserId())
     document.querySelector('a#fbToolkitScroll').addEventListener('click', () => scrollTimeline())
-    document.querySelector('a#fbToolkitExpand').addEventListener('click', () => alert('Function not implemented yet, sorry'))
+    document.querySelector('a#fbToolkitExpand').addEventListener('click', () => expandTimeline())
     document.querySelector('a#fbToolkitClear').addEventListener('click', () => clearTimeline())
 }).catch(exception => alertError(exception, 'Facebook Toolkit failed. Please reload page.'))
