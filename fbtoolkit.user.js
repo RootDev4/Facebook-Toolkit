@@ -9,6 +9,9 @@
 // @run-at      document-idle
 // ==/UserScript==
 
+// Facebook loading image
+const fbLoaderImg = 'https://static.xx.fbcdn.net/rsrc.php/v3/yb/r/GsNJNwuI-UM.gif'
+
 /**
  * Alert an error message to user
  * @param {*} exception Message of thrown exception
@@ -20,18 +23,19 @@ function alertError(exception, message) {
 }
 
 /**
- * Set script status
- * @param {*} value Status can be true (running) or false (idle)
+ * Show/hide Facebook image loader next to toolkit menu item
  */
-function setStatus(value) {
-    window.sessionStorage.setItem('fbToolkitStatus', value)
-}
-
-/**
- * Get script status
- */
-function getStatus() {
-    return window.sessionStorage.getItem('fbToolkitStatus')
+function toggleImg() {
+    try {
+        const img = document.querySelector('img#fbToolkitImg')
+        if (img.classList.contains('hidden_elem')) {
+            img.classList.remove('hidden_elem')
+        } else {
+            img.classList.add('hidden_elem')
+        }
+    } catch (exception) {
+        console.error(exception)
+    }
 }
 
 /**
@@ -64,16 +68,16 @@ function showUserId() {
  * Scroll user timeline
  */
 function scrollTimeline() {
-    setStatus(true)
-    let task = null
     try {
+        toggleImg()
+        let task = null
         task = setInterval(() => {
             window.scrollBy(0, document.body.scrollHeight)
             if (document.querySelector('i.img.sp_jgaSVtiDmn_.sx_fa8e49')) {
                 clearInterval(task)
                 window.scrollBy(0, document.body.scrollHeight)
                 window.scrollTo(0, 0)
-                setStatus(false)
+                toggleImg()
                 alert('Auto scrolling finished')
             }
         }, 100)
@@ -86,16 +90,20 @@ function scrollTimeline() {
  * Expand hidden content like comments etc.
  */ 
 function expandTimeline() {
-    setStatus(true)
-    let expand = setInterval(() => {
-        document.querySelectorAll('a._4sxc._42ft, a._5v47.fss, a.see_more_link').forEach(node => node.click())
-        if (!document.querySelectorAll('a._4sxc._42ft').length) {
-            clearInterval(expand)
-            window.scrollTo(0, 0)
-            setStatus(false)
-            alert('All content expanded')
-        }
-    }, 100)
+    try {
+        toggleImg()
+        let expand = setInterval(() => {
+            document.querySelectorAll('a._4sxc._42ft, a._5v47.fss, a.see_more_link, li.showAll > a').forEach(node => node.click())
+            if (!document.querySelectorAll('a._4sxc._42ft').length) {
+                clearInterval(expand)
+                window.scrollTo(0, 0)
+                toggleImg()
+                alert('All content expanded')
+            }
+        }, 100)
+    } catch (exception) {
+        alertError(exception, 'Expanding hidden content failed.')
+    }
 }
 
 /**
@@ -148,20 +156,23 @@ async function init() {
             const newItem = document.createElement('div')
             newItem.classList.add('_4kny', '_2s24')
             newItem.innerHTML = `<!--Facebook Toolkit by RootDev4-->
-                <div class="uiToggle _cy7 _3nzl">
-                    <a class="_2s25" rel="toggle" href="#" role="button" data-target="fbToolkitFlyout">Toolkit</a>
-                    <div class="__tw toggleTargetClosed _3nzk" role="dialog" id="fbToolkitFlyout" style="margin: 5px 10px 0 0; width: 160px">
+                <div class="uiToggle _cy7 _3nzl  hidden_elem" id="fbToolkit">
+                    <a class="_2s25" rel="toggle" href="#" role="button" data-target="fbToolkitFlyout">
+                        <img src="${fbLoaderImg}" class="hidden_elem" style="margin-right: 8px;" id="fbToolkitImg">
+                        <span>Toolkit</span>
+                    </a>
+                    <div class="__tw toggleTargetClosed _3nzk" role="dialog" id="fbToolkitFlyout" style="margin: 5px 10px 0 0; padding: 10px; width: 160px">
                         <div class="beeperNub"></div>
-                        <ul style="padding: 10px">
-                            <li style="padding: 3px"><a href="#" id="fbToolkitUserId">Get numeric user ID</a></li>
-                            <li style="padding: 3px"><a href="#" id="fbToolkitIdCover">Show user ID on cover</a></li>
-                            <li style="padding: 3px"><a href="#" id="fbToolkitScroll">Scroll user timeline</a></li>
-                            <li style="padding: 3px"><a href="#" id="fbToolkitExpand">Expand hidden content</a></li>
-                            <li style="padding: 3px"><a href="#" id="fbToolkitClear">Clear user profile</a></li>
+                        <ul>
+                            <li style="padding: 3px"><a href="#" id="fbToolkitUserId" class="fbToolkitLink">Get numeric user ID</a></li>
+                            <li style="padding: 3px"><a href="#" id="fbToolkitIdCover" class="fbToolkitLink">Show user ID on cover</a></li>
+                            <li style="padding: 3px"><a href="#" id="fbToolkitScroll" class="fbToolkitLink">Scroll user timeline</a></li>
+                            <li style="padding: 3px"><a href="#" id="fbToolkitExpand" class="fbToolkitLink">Expand hidden content</a></li>
+                            <li style="padding: 3px"><a href="#" id="fbToolkitClear" class="fbToolkitLink">Clear user profile</a></li>
                             <hr>
-                            <li style="padding: 3px"><a href="#" onclick="window.scrollTo(0, body.scrollHeight)">Jump to page bottom</a></li>
-                            <li style="padding: 3px"><a href="#" onclick="window.scrollTo(0, 0)">Jump to page top</a></li>
-                            <li style="padding: 3px"><a href="#" onclick="location.reload(true)">Force page reload</a></li>
+                            <li style="padding: 3px"><a href="#" class="fbToolkitLink" onclick="window.scrollTo(0, body.scrollHeight)">Jump to bottom</a></li>
+                            <li style="padding: 3px"><a href="#" class="fbToolkitLink" onclick="window.scrollTo(0, 0)">Jump to top</a></li>
+                            <li style="padding: 3px"><a href="#" class="fbToolkitLink" onclick="location.reload(true)">Force reload</a></li>
                             <hr>
                             <li style="padding: 3px"><a href="https://github.com/RootDev4/Facebook-Toolkit" target="_blank">About & Help</a></li>
                         </ul>
@@ -175,9 +186,33 @@ async function init() {
 }
 
 /**
- * Run Facebook toolkit and add click listeners after initialization
+ * Show Facebook toolkit only, if user is visiting an user profile
+ */
+function showToolkit() {
+    try {
+        window.onload = () => {
+            if (document.querySelector('div#pagelet_timeline_main_column')) {
+                document.querySelector('div#fbToolkit').classList.remove('hidden_elem')
+            } else {
+                document.querySelector('div#fbToolkit').classList.add('hidden_elem')
+            }
+        }
+    } catch (exception) {
+        console.error(exception)
+    }
+}
+
+/**
+ * Run Facebook toolkit if visiting an user profile and add click listeners after initialization
  */
 init().then(() => {
+    showToolkit()
+    document.body.addEventListener('click', () => showToolkit()) // Check user location and show/hide toolkit
+
+    document.querySelectorAll('a.fbToolkitLink').forEach(link => {
+        link.addEventListener('click', () => document.body.click()) // Hide flyout after action selected
+    })
+
     document.querySelector('a#fbToolkitUserId').addEventListener('click', () => alert(getUserId()))
     document.querySelector('a#fbToolkitIdCover').addEventListener('click', () => showUserId())
     document.querySelector('a#fbToolkitScroll').addEventListener('click', () => scrollTimeline())
