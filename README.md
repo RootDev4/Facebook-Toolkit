@@ -22,6 +22,9 @@ Expands hidden content like "See more" text or covered comments.
 ### Clear timeline
 Removes boxes and buttons with unwanted content for printing the user's profile.
 
+### Extract user's friendlist
+Extract all visible friends or followers and print out as CSV formatted string.
+
 ### Jump to page bottom / Jump to page
 Self-explaining.
 
