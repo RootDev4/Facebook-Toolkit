@@ -1,16 +1,13 @@
 // ==UserScript==
 // @name        Facebook Toolkit
 // @namespace   https://github.com/RootDev4/Facebook-Toolkit
-// @version     0.1
+// @version     0.2
 // @description JavaScript Userscript for Facebook automation
 // @author      RootDev4 (Chris)
 // @match       https://www.facebook.com/*
 // @grant       none
 // @run-at      document-idle
 // ==/UserScript==
-
-// Facebook loading image
-const fbLoaderImg = 'https://static.xx.fbcdn.net/rsrc.php/v3/yb/r/GsNJNwuI-UM.gif'
 
 /**
  * Alert an error message to user
@@ -22,20 +19,8 @@ function alertError(exception, message) {
     alert(message + '\nPlease see console log for details.')
 }
 
-/**
- * Show/hide Facebook image loader next to toolkit menu item
- */
-function toggleImg() {
-    try {
-        const img = document.querySelector('img#fbToolkitImg')
-        if (img.classList.contains('hidden_elem')) {
-            img.classList.remove('hidden_elem')
-        } else {
-            img.classList.add('hidden_elem')
-        }
-    } catch (exception) {
-        console.error(exception)
-    }
+function hidePopup() {
+    //
 }
 
 /**
@@ -69,14 +54,13 @@ function showUserId() {
  */
 function scrollTimeline() {
     try {
-        toggleImg()
-        let loadTimeline = setInterval(() => {
+        let task = setInterval(() => {
             window.scrollBy(0, document.body.scrollHeight)
-            if (document.querySelector('i.img.sp_jgaSVtiDmn_.sx_fa8e49')) {
-                clearInterval(loadTimeline)
+
+            if (document.querySelector('div[id^="timeline_pager_container_"] div i.img')) {
+                clearInterval(task)
                 window.scrollBy(0, document.body.scrollHeight)
                 window.scrollTo(0, 0)
-                toggleImg()
                 alert('Auto scrolling finished')
             }
         }, 100)
@@ -87,130 +71,18 @@ function scrollTimeline() {
 
 /**
  * Expand hidden content like comments etc.
- */ 
+ */
 function expandTimeline() {
-    try {
-        toggleImg()
-        let expand = setInterval(() => {
-            document.querySelectorAll('a._4sxc._42ft, a._5v47.fss, a.see_more_link, li.showAll > a').forEach(node => node.click())
-            if (!document.querySelectorAll('a._4sxc._42ft').length) {
-                clearInterval(expand)
-                window.scrollTo(0, 0)
-                toggleImg()
-                alert('All content expanded')
-            }
-        }, 100)
-    } catch (exception) {
-        alertError(exception, 'Expanding hidden content failed.')
-    }
-}
+    let expand = setInterval(() => {
+        document.querySelectorAll('a._4sxc._42ft, a._5v47.fss, a.see_more_link').forEach(node => node.click())
 
-/**
- * Print out an user's friendlist as CSV formatted string
- * @param {*} fList Array with user's friends/followers
- */
-function printList(fList) {
-    try {
-        const username = document.querySelector('span#fb-timeline-cover-name').textContent
-        let output = `<html><head><title>${username}</title></head><body>`
-        output += `<h1>${fList[0]} list of ${username}</h1><p>CSV formatted list of public ${fList[0].toLowerCase()}. `
-        output += `Extracted ${fList.length - 1} visible ${fList[0].toLowerCase()} at all.</p><hr>`
-        fList.shift()
-        fList.forEach(user => output += `${[user.id, user.vanity, user.name, user.image].join()}<br>`)
-        document.write(`${output}</body></html>`)
-    } catch (exception) {
-        alertError(exception, 'Printing list failed.')
-    }
-}
-
-/**
- * Extract Facebook vanity username out of user's profile URL
- * @param {*} userUrl User's profile URL
- */
-function getVanityName(userUrl) {
-    try {
-        const name = /facebook.com\/(.*?)\?/g.exec(userUrl)[1] || null
-        if (name !== null && !name.contains('profile.php')) return name
-        throw new Exception()
-    } catch (exception) {
-        return null
-    }
-}
-
-/**
- * Extract an user's data out of HTML user card node
- * @param {*} userCard HTML user card node
- */
-function getUserData(userCard) {
-    try {
-        const userId = /id=(.*?)\&/g.exec(userCard.getAttribute('data-hovercard'))[1] || null
-        const vanityName = getVanityName(userCard.getAttribute('href'))
-        const userName = userCard.querySelector('img:first-child').getAttribute('aria-label') || null
-        const userImage = userCard.querySelector('img:first-child').getAttribute('src') || null
-
-        return {'id': userId, 'vanity': vanityName, 'name': userName, 'image': userImage}
-    } catch (exception) {
-        console.error(`Parsing user card for ${userCard} failed with error ${exception}.`)
-        return {}
-    }
-}
-
-/**
- * Extract an user's friend-/followerlist
- */
-function extractFriendlist() {
-    try {
-        const followersList = document.querySelector('div#pagelet_collections_followers') || null
-        const friendsList = document.querySelector('div#pagelet_timeline_medley_friends') || null
-
-        // Followers
-        if (followersList !== null) {
-            toggleImg()
-            let loadFollowersList = setInterval(() => {
-                window.scrollBy(0, document.body.scrollHeight)
-
-                if (document.querySelector('div.morePager') === null) {
-                    clearInterval(loadFollowersList)
-                    window.scrollBy(0, document.body.scrollHeight)
-                    window.scrollTo(0, 0)
-
-                    let list = ['Followers']
-                    followersList.querySelectorAll('ul.uiList > li.fbProfileBrowserListItem > div > a').forEach(follower => {
-                        list.push(getUserData(follower))
-                    })
-                    return printList(list)
-                }
-            }, 100)
+        if (!document.querySelectorAll('a._4sxc._42ft').length) {
+            clearInterval(expand)
+            window.scrollTo(0, 0)
+            alert('All content expanded')
         }
-        
-        // Friends
-        else if (friendsList !== null) {
-            toggleImg()
-            let loadFriendsList = setInterval(() => {
-                window.scrollBy(0, document.body.scrollHeight)
-
-                if (document.querySelectorAll('div#pagelet_timeline_medley_photos').length) {
-                    clearInterval(loadFriendsList)
-                    window.scrollBy(0, document.body.scrollHeight)
-                    window.scrollTo(0, 0)
-
-                    let list = ['Friends']
-                    friendsList.querySelectorAll('ul.uiList > li > div[data-testid="friend_list_item"] > a').forEach(friend => {
-                        list.push(getUserData(friend))
-                    })
-                    return printList(list)
-                }
-            }, 100)
-        }
-
-        else {
-            return alertError('Friendlist not found.', 'You\'re not showing an user\'s friend- or followerslist.')
-        }
-    } catch (exception) {
-        alertError(exception, 'Extracting the user\'s friendlist failed.')
-    }
+    }, 100)
 }
-
 
 /**
  * Hide an element from DOM
@@ -249,10 +121,6 @@ function clearTimeline() {
     hide('div#timeline_sticky_header_container')
     hide('ul[data-referrer="timeline_light_nav_top"]')
     hide('div#pagelet_escape_hatch') // Follow profile
-    hide('a[href="/subscriptions/suggestions/"]') // "Find People to Follow" link
-    hide('a[ajaxify*="/ajax/follow/follow_profile.php"]') // Follow button in followers list
-    hide('a[href="/find-friends/browser/"]:parent') // "Friend Requests / Find Friends" buttons
-    hide('button[aria-label="Manage"]:parent') // Manage sections button
     hide('div#pagelet_pymk_timeline')
     hide('div#pagelet_timeline_composer')
     // Add more elements here...
@@ -264,33 +132,32 @@ function clearTimeline() {
 async function init() {
     new Promise((resolve, reject) => {
         try {
+            function hide() { alert(1) }
             const menuItem = document.querySelector('div[role="navigation"] > div')
             const newItem = document.createElement('div')
+
             newItem.classList.add('_4kny', '_2s24')
             newItem.innerHTML = `<!--Facebook Toolkit by RootDev4-->
-                <div class="uiToggle _cy7 _3nzl  hidden_elem" id="fbToolkit">
-                    <a class="_2s25" rel="toggle" href="#" role="button" data-target="fbToolkitFlyout">
-                        <img src="${fbLoaderImg}" class="hidden_elem" style="margin-right: 8px;" id="fbToolkitImg">
-                        <span>Toolkit</span>
-                    </a>
-                    <div class="__tw toggleTargetClosed _3nzk" role="dialog" id="fbToolkitFlyout" style="margin: 5px 10px 0 0; padding: 10px; width: 160px">
+                <div class="uiToggle _cy7 _3nzl">
+                    <a class="_2s25" rel="toggle" href="#" role="button" data-target="fbToolkitFlyout">Toolkit</a>
+                    <div class="__tw toggleTargetClosed _3nzk" role="dialog" id="fbToolkitFlyout" style="margin: 5px 10px 0 0; width: 160px">
                         <div class="beeperNub"></div>
-                        <ul>
-                            <li style="padding: 3px"><a href="#" id="fbToolkitUserId" class="fbToolkitLink">Get numeric user ID</a></li>
-                            <li style="padding: 3px"><a href="#" id="fbToolkitIdCover" class="fbToolkitLink">Show user ID on cover</a></li>
-                            <li style="padding: 3px"><a href="#" id="fbToolkitScroll" class="fbToolkitLink">Scroll user timeline</a></li>
-                            <li style="padding: 3px"><a href="#" id="fbToolkitExpand" class="fbToolkitLink">Expand hidden content</a></li>
-                            <li style="padding: 3px"><a href="#" id="fbToolkitClear" class="fbToolkitLink">Clear user profile</a></li>
-                            <li style="padding: 3px"><a href="#" id="fbToolkitFriends" class="fbToolkitLink">Extract user's friendlist</a></li>
+                        <ul style="padding: 10px">
+                            <li style="padding: 3px"><a href="#" id="fbToolkitUserId">Get numeric user ID</a></li>
+                            <li style="padding: 3px"><a href="#" id="fbToolkitIdCover">Show user ID on cover</a></li>
+                            <li style="padding: 3px"><a href="#" id="fbToolkitScroll">Scroll user timeline</a></li>
+                            <li style="padding: 3px"><a href="#" id="fbToolkitExpand">Expand hidden content</a></li>
+                            <li style="padding: 3px"><a href="#" id="fbToolkitClear">Clear user profile</a></li>
                             <hr>
-                            <li style="padding: 3px"><a href="#" class="fbToolkitLink" onclick="window.scrollTo(0, body.scrollHeight)">Jump to bottom</a></li>
-                            <li style="padding: 3px"><a href="#" class="fbToolkitLink" onclick="window.scrollTo(0, 0)">Jump to top</a></li>
-                            <li style="padding: 3px"><a href="#" class="fbToolkitLink" onclick="location.reload(true)">Force reload</a></li>
+                            <li style="padding: 3px"><a href="#" id="fbToolkitBottom" onclick="window.scrollTo(0, body.scrollHeight)">Jump to page bottom</a></li>
+                            <li style="padding: 3px"><a href="#" id="fbToolkitTop" onclick="window.scrollTo(0, 0)">Jump to page top</a></li>
+                            <li style="padding: 3px"><a href="#" id="fbToolkitReload" onclick="location.reload(true)">Force page reload</a></li>
                             <hr>
-                            <li style="padding: 3px"><a href="https://github.com/RootDev4/Facebook-Toolkit" target="_blank">About & Help</a></li>
+                            <li style="padding: 3px"><a href="https://github.com/RootDev4/Facebook-Toolkit" id="fbToolkitHelp" target="_blank">About & Help</a></li>
                         </ul>
                     </div>
                 </div>`
+
             resolve(menuItem.appendChild(newItem))
         } catch (exception) {
             reject(exception)
@@ -299,37 +166,24 @@ async function init() {
 }
 
 /**
- * Show Facebook toolkit only, if user is visiting an user profile
+ * Run Facebook toolkit and add click listeners after initialization
  */
-function showToolkit() {
-    try {
-        window.onload = () => {
-            if (document.querySelector('div#pagelet_timeline_main_column')) {
-                document.querySelector('div#fbToolkit').classList.remove('hidden_elem')
-            } else {
-                document.querySelector('div#fbToolkit').classList.add('hidden_elem')
-            }
-        }
-    } catch (exception) {
-        console.error(exception)
+window.onload = () => {
+    if (document.getElementById('pagelet_timeline_main_column')) {
+        init().then(() => {
+
+            // Close flyout menu on menu item click
+            const flyout = document.querySelector('a[data-target="fbToolkitFlyout"]')
+            const menuItems = document.querySelectorAll('a[id^="fbToolkit"]')
+            menuItems.forEach(item => item.addEventListener('click', () =>  flyout.click()))
+
+            // Add click event listener to every menu item
+            document.querySelector('a#fbToolkitUserId').addEventListener('click', () => alert(getUserId()))
+            document.querySelector('a#fbToolkitIdCover').addEventListener('click', () => showUserId())
+            document.querySelector('a#fbToolkitScroll').addEventListener('click', () => scrollTimeline())
+            document.querySelector('a#fbToolkitExpand').addEventListener('click', () => expandTimeline())
+            document.querySelector('a#fbToolkitClear').addEventListener('click', () => clearTimeline())
+
+        }).catch(exception => alertError(exception, 'Facebook Toolkit failed. Please reload page.'))
     }
 }
-
-/**
- * Run Facebook toolkit if visiting an user profile and add click listeners after initialization
- */
-init().then(() => {
-    showToolkit()
-    document.body.addEventListener('click', () => showToolkit()) // Check user location and show/hide toolkit
-
-    document.querySelectorAll('a.fbToolkitLink').forEach(link => {
-        link.addEventListener('click', () => document.body.click()) // Hide flyout after action selected
-    })
-
-    document.querySelector('a#fbToolkitUserId').addEventListener('click', () => alert(getUserId()))
-    document.querySelector('a#fbToolkitIdCover').addEventListener('click', () => showUserId())
-    document.querySelector('a#fbToolkitScroll').addEventListener('click', () => scrollTimeline())
-    document.querySelector('a#fbToolkitExpand').addEventListener('click', () => expandTimeline())
-    document.querySelector('a#fbToolkitClear').addEventListener('click', () => clearTimeline())
-    document.querySelector('a#fbToolkitFriends').addEventListener('click', () => extractFriendlist())
-}).catch(exception => alertError(exception, 'Facebook Toolkit failed. Please reload page.'))
