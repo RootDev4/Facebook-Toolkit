@@ -1,5 +1,7 @@
 # Facebook-Toolkit
-JavaScript Userscript for Facebook automation
+JavaScript Userscript for Facebook automation.
+
+![Facebook Toolkit](https://www1.xup.in/exec/ximg.php?fid=14551942)
 
 ## Usage
 
