@@ -36,7 +36,7 @@ function getUserId() {
         const pagelet = document.getElementById('pagelet_timeline_main_column')
         return JSON.parse(pagelet.getAttribute('data-gt')).profile_owner
     } catch (exception) {
-        console.log(exception)
+        console.error(exception)
         alert('Getting Facebook user ID failed.\nSee console log for details.')
     }
     return 0
@@ -51,7 +51,7 @@ function showUserId() {
         userIdNode.innerHTML = `<span style="color:#fff; font-size:120%;">Facebook ID: ${getUserId()}</span>`
         document.getElementById('fb-timeline-cover-name').parentNode.parentNode.append(userIdNode)
     } catch (exception) {
-        console.log(exception)
+        console.error(exception)
         alert('Showing Facebook user ID on timeline cover failed.\nSee console log for details.')
     }
 }
@@ -63,7 +63,7 @@ function getUsername() {
     try {
         return document.querySelector('span#fb-timeline-cover-name a').innerText
     } catch (exception) {
-        console.log(exception)
+        console.error(exception)
     }
 
     return null
@@ -78,7 +78,7 @@ function getVanityName(userUrl) {
         const name = /facebook.com\/(.*?)\?/g.exec(userUrl)[1] || null
         if (name !== null && !name.contains('profile.php')) return name
     } catch (exception) {
-        console.log(exception)
+        console.error(exception)
     }
 
     return null
@@ -108,7 +108,7 @@ function scrollTimeline() {
             throw 'Scrolling timeline failed. Cannot find selectors.'
         }
     } catch (exception) {
-        console.log(exception)
+        console.error(exception)
         alert('Please open the timeline of this user.\nSee console log for details.')
     }
 }
@@ -136,7 +136,7 @@ function expandTimeline() {
             throw 'Expanding hidden content on user\'s timeline failed. Cannot find selectors.'
         }
     } catch (exception) {
-        console.log(exception)
+        console.error(exception)
         alert('Expanding hidden content failed.\nSee console log for details.')
     }
 }
@@ -147,14 +147,13 @@ function expandTimeline() {
 function friendScraper() {
     return new Promise((resolve, reject) => {
         try {
-            toggleLoaderImg()
-
             let scrollContent = setInterval(() => {
                 window.scrollBy(0, document.body.scrollHeight)
 
                 const followers = document.querySelector('div#pagelet_collections_followers') ? true : false
+                const moreMedleys = document.querySelectorAll('div[id^="pagelet_timeline_medley"]:not(#pagelet_timeline_medley_friends)')
 
-                if ((!followers && document.querySelector('div#pagelet_timeline_medley_photos')) || (followers && document.querySelector('div.morePager') === null)) {
+                if ((!followers && moreMedleys.length) || (followers && document.querySelector('div.morePager') === null)) {
                     clearInterval(scrollContent)
                     window.scrollBy(0, document.body.scrollHeight)
                     window.scrollTo(0, 0)
@@ -177,10 +176,7 @@ function friendScraper() {
                         counter += 1
                         const enumType = (followers) ? 'Followers' : 'Friends'
 
-                        if (counter >= friendsList.length) {
-                            toggleLoaderImg()
-                            resolve({ listtype: enumType, list: friendsList })
-                        }
+                        if (counter >= friendsList.length) resolve({ listtype: enumType, list: friendsList })
                     })
                 }
             }, 100)
@@ -196,11 +192,18 @@ function friendScraper() {
 function extractFriends() {
     try {
         if (document.getElementById('medley_header_friends')) {
+            toggleLoaderImg()
+
             friendScraper()
                 .then(friends => {
+                    toggleLoaderImg()
+                    if (!friends.list.length) return alert('No visible friends to extract.')
+
                     let csv = 'UserID,VanityName,UserName'
                     friends.list.forEach(friend => csv += `<br>${friend.id},${friend.vanity},${friend.name}`)
                     document.write(csv)
+
+                    console.log(`Extracted ${friends.list.length} friends.`)
                 })
                 .catch(error => {
                     throw error
@@ -209,7 +212,7 @@ function extractFriends() {
             throw 'Friendlist extraction failed. Cannot find selectors.'
         }
     } catch (exception) {
-        console.log(exception)
+        console.error(exception)
         alert('Please open the friends section of this user.\nSee console log for details.')
     }
 }
@@ -220,15 +223,10 @@ function extractFriends() {
 function photoScraper() {
     return new Promise((resolve, reject) => {
         try {
-            toggleLoaderImg()
-
             let scrollContent = setInterval(() => {
                 window.scrollBy(0, document.body.scrollHeight)
 
-                const photosContainer = document.querySelector('div#pagelet_timeline_medley_photos')
-                const moreHeader = photosContainer.nextSibling.querySelector('h3.uiHeaderTitle')
-
-                if (moreHeader || document.querySelector('div#pagelet_timeline_medley_videos')) {
+                if (document.querySelectorAll('div[id^="pagelet_timeline_medley"]:not(#pagelet_timeline_medley_photos').length) {
                     clearInterval(scrollContent)
                     window.scrollBy(0, document.body.scrollHeight)
                     window.scrollTo(0, 0)
@@ -245,10 +243,7 @@ function photoScraper() {
                         album.push(photo.getAttribute('data-starred-src'))
                         counter += 1
 
-                        if (counter >= photos.length) {
-                            toggleLoaderImg()
-                            resolve(album)
-                        }
+                        if (counter >= photos.length) resolve(album)
                     })
                 }
             }, 100)
@@ -265,8 +260,13 @@ function photoScraper() {
 function downloadPhotos() {
     try {
         if (document.getElementById('pagelet_timeline_medley_photos')) {
+            toggleLoaderImg()
+
             photoScraper()
                 .then(photos => {
+                    toggleLoaderImg()
+                    if (!photos.length) return alert('No visible photos to download.')
+
                     let album = `<h1>Photos of ${getUsername()}</h1>`
                     album += `<h3>Please save website to your computer (Ctrl+S) to download all photos.</h3>`
                     photos.forEach(photo => album += `<img src="${photo}" style="max-width: 400px">`)
@@ -279,7 +279,7 @@ function downloadPhotos() {
             throw 'Photo extraction failed. Cannot find selectors.'
         }
     } catch (exception) {
-        console.log(exception)
+        console.error(exception)
         alert('Please open the photos section of this user.\nSee console log for details.')
     }
 }
@@ -305,7 +305,7 @@ function hide(cssSelector) {
             }
         })
     } catch (exception) {
-        console.log(exception)
+        console.error(exception)
     }
 }
 
@@ -401,7 +401,7 @@ window.onload = () => {
                 })
         }
     } catch (exception) {
-        console.log(exception)
+        console.error(exception)
         alert('Facebook Toolkit failed, please reload page.\nSee console log for details.')
     }
 }
