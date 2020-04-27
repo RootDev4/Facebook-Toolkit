@@ -336,8 +336,8 @@ function clearTimeline() {
  * Insert toolkit menu item and flyout into Facebook bluebar
  */
 function init() {
-    try {
-        return new Promise((resolve, reject) => {
+    return new Promise((resolve, reject) => {
+        try {
             const menuItem = document.querySelector('div[role="navigation"] > div')
             const newItem = document.createElement('div')
 
@@ -369,10 +369,10 @@ function init() {
                 </div>`
 
             resolve(menuItem.appendChild(newItem))
-        })
-    } catch (exception) {
-        reject(exception)
-    }
+        } catch (exception) {
+            reject(exception)
+        }
+    })
 }
 
 /**
