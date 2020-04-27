@@ -225,7 +225,10 @@ function photoScraper() {
             let scrollContent = setInterval(() => {
                 window.scrollBy(0, document.body.scrollHeight)
 
-                if (document.querySelector('div#pagelet_timeline_medley_videos')) {
+                const photosContainer = document.querySelector('div#pagelet_timeline_medley_photos')
+                const moreHeader = photosContainer.nextSibling.querySelector('h3.uiHeaderTitle')
+
+                if (moreHeader || document.querySelector('div#pagelet_timeline_medley_videos')) {
                     clearInterval(scrollContent)
                     window.scrollBy(0, document.body.scrollHeight)
                     window.scrollTo(0, 0)
