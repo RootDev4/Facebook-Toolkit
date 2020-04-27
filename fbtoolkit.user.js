@@ -9,14 +9,23 @@
 // @run-at      document-idle
 // ==/UserScript==
 
+// Facebook loading image
+const fbLoaderImg = 'https://static.xx.fbcdn.net/rsrc.php/v3/yb/r/GsNJNwuI-UM.gif'
+
 /**
- * Alert an error message to user
- * @param {*} exception Message of thrown exception
- * @param {*} message Message to show to user
+ * Show/hide Facebook image loader next to toolkit menu item
  */
-function alertError(exception, message) {
-    console.error(exception)
-    alert(message + '\nSee console log for details.')
+function toggleLoaderImg() {
+    try {
+        const img = document.querySelector('img#fbToolkitImg')
+        if (img.classList.contains('hidden_elem')) {
+            img.classList.remove('hidden_elem')
+        } else {
+            img.classList.add('hidden_elem')
+        }
+    } catch (exception) {
+        console.error(exception)
+    }
 }
 
 /**
@@ -27,7 +36,8 @@ function getUserId() {
         const pagelet = document.getElementById('pagelet_timeline_main_column')
         return JSON.parse(pagelet.getAttribute('data-gt')).profile_owner
     } catch (exception) {
-        alertError(exception, 'Getting Facebook user ID failed.')
+        console.log(exception)
+        alert('Getting Facebook user ID failed.\nSee console log for details.')
     }
     return 0
 }
@@ -41,7 +51,8 @@ function showUserId() {
         userIdNode.innerHTML = `<span style="color:#fff; font-size:120%;">Facebook ID: ${getUserId()}</span>`
         document.getElementById('fb-timeline-cover-name').parentNode.parentNode.append(userIdNode)
     } catch (exception) {
-        alertError(exception, 'Showing Facebook user ID on timeline cover failed.')
+        console.log(exception)
+        alert('Showing Facebook user ID on timeline cover failed.\nSee console log for details.')
     }
 }
 
@@ -59,22 +70,46 @@ function getUsername() {
 }
 
 /**
+ * Extract Facebook vanity username out of user's profile URL
+ * @param {*} userUrl User's profile URL
+ */
+function getVanityName(userUrl) {
+    try {
+        const name = /facebook.com\/(.*?)\?/g.exec(userUrl)[1] || null
+        if (name !== null && !name.contains('profile.php')) return name
+    } catch (exception) {
+        console.log(exception)
+    }
+
+    return null
+}
+
+/**
  * Scroll user timeline
  */
 function scrollTimeline() {
     try {
-        let task = setInterval(() => {
-            window.scrollBy(0, document.body.scrollHeight)
+        if (document.getElementById('timeline_tab_content')) {
+            toggleLoaderImg()
 
-            if (document.querySelector('div[id^="timeline_pager_container_"] div i.img')) {
-                clearInterval(task)
+            let task = setInterval(() => {
                 window.scrollBy(0, document.body.scrollHeight)
-                window.scrollTo(0, 0)
-                alert('Auto scrolling finished')
-            }
-        }, 100)
+
+                if (document.querySelector('div[id^="timeline_pager_container_"] div i.img')) {
+                    clearInterval(task)
+                    window.scrollBy(0, document.body.scrollHeight)
+                    window.scrollTo(0, 0)
+
+                    toggleLoaderImg()
+                    alert('Auto scrolling finished')
+                }
+            }, 100)
+        } else {
+            throw 'Scrolling timeline failed. Cannot find selectors.'
+        }
     } catch (exception) {
-        alertError(exception, 'Scrolling the user timeline failed.')
+        console.log(exception)
+        alert('Please open the timeline of this user.\nSee console log for details.')
     }
 }
 
@@ -82,15 +117,28 @@ function scrollTimeline() {
  * Expand hidden content like comments etc.
  */
 function expandTimeline() {
-    let expand = setInterval(() => {
-        document.querySelectorAll('a._4sxc._42ft, a._5v47.fss, a.see_more_link').forEach(node => node.click())
+    try {
+        if (document.getElementById('timeline_tab_content')) {
+            toggleLoaderImg()
 
-        if (!document.querySelectorAll('a._4sxc._42ft').length) {
-            clearInterval(expand)
-            window.scrollTo(0, 0)
-            alert('All content expanded')
+            let expand = setInterval(() => {
+                document.querySelectorAll('a._4sxc._42ft, a._5v47.fss, a.see_more_link').forEach(node => node.click())
+
+                if (!document.querySelectorAll('a._4sxc._42ft').length) {
+                    clearInterval(expand)
+                    window.scrollTo(0, 0)
+
+                    toggleLoaderImg()
+                    alert('All content expanded')
+                }
+            }, 100)
+        } else {
+            throw 'Expanding hidden content on user\'s timeline failed. Cannot find selectors.'
         }
-    }, 100)
+    } catch (exception) {
+        console.log(exception)
+        alert('Expanding hidden content failed.\nSee console log for details.')
+    }
 }
 
 /**
@@ -98,38 +146,47 @@ function expandTimeline() {
  */
 function friendScraper() {
     return new Promise((resolve, reject) => {
-        let scrollContent = setInterval(() => {
-            window.scrollBy(0, document.body.scrollHeight)
+        try {
+            toggleLoaderImg()
 
-            const followers = document.querySelector('div#pagelet_collections_followers') ? true : false
-
-            if ((!followers && document.querySelector('div#pagelet_timeline_medley_photos')) || (followers && document.querySelector('div.morePager') === null)) {
-                clearInterval(scrollContent)
+            let scrollContent = setInterval(() => {
                 window.scrollBy(0, document.body.scrollHeight)
-                window.scrollTo(0, 0)
 
-                // Fetch friends/followers
-                const collection = (followers) ? document.querySelector('div#pagelet_collections_followers') : document.querySelector('div#pagelet_timeline_medley_friends')
-                const friends = (followers) ? collection.querySelectorAll('li.fbProfileBrowserListItem > div') : collection.querySelectorAll('div[data-testid="friend_list_item"]')
-                let counter = 0
-                let friendsList = []
+                const followers = document.querySelector('div#pagelet_collections_followers') ? true : false
 
-                if (!friends.length) resolve({ type: null, list: friendsList })
+                if ((!followers && document.querySelector('div#pagelet_timeline_medley_photos')) || (followers && document.querySelector('div.morePager') === null)) {
+                    clearInterval(scrollContent)
+                    window.scrollBy(0, document.body.scrollHeight)
+                    window.scrollTo(0, 0)
 
-                friends.forEach(friend => {
-                    const userData = friend.querySelector('a[data-hovercard^="/ajax/hovercard/"]')
-                    const userID = /\/ajax\/hovercard\/user.php\?id=(.*?)\&/g.exec(userData.getAttribute('data-hovercard'))[1] || ''
-                    const vanityName = (userData.href.includes('profile.php')) ? '' : /facebook.com\/(.*?)\?/g.exec(userData.href)[1] || ''
-                    const userName = userData.querySelector('img[aria-label]').getAttribute('aria-label') || ''
+                    // Fetch friends/followers
+                    const collection = (followers) ? document.querySelector('div#pagelet_collections_followers') : document.querySelector('div#pagelet_timeline_medley_friends')
+                    const friends = (followers) ? collection.querySelectorAll('li.fbProfileBrowserListItem > div') : collection.querySelectorAll('div[data-testid="friend_list_item"]')
+                    let counter = 0
+                    let friendsList = []
 
-                    friendsList.push({ id: userID, vanity: vanityName, name: userName })
+                    if (!friends.length) resolve({ type: null, list: friendsList })
 
-                    counter += 1
-                    const enumType = (followers) ? 'Followers' : 'Friends'
-                    if (counter >= friendsList.length) resolve({ listtype: enumType, list: friendsList })
-                })
-            }
-        }, 100)
+                    friends.forEach(friend => {
+                        const userData = friend.querySelector('a[data-hovercard^="/ajax/hovercard/"]')
+                        const userID = /\/ajax\/hovercard\/user.php\?id=(.*?)\&/g.exec(userData.getAttribute('data-hovercard'))[1] || ''
+                        const vanityName = (userData.href.includes('profile.php')) ? '' : /facebook.com\/(.*?)\?/g.exec(userData.href)[1] || ''
+                        const userName = userData.querySelector('img[aria-label]').getAttribute('aria-label') || ''
+
+                        friendsList.push({ id: userID, vanity: vanityName, name: userName })
+                        counter += 1
+                        const enumType = (followers) ? 'Followers' : 'Friends'
+
+                        if (counter >= friendsList.length) {
+                            toggleLoaderImg()
+                            resolve({ listtype: enumType, list: friendsList })
+                        }
+                    })
+                }
+            }, 100)
+        } catch (exception) {
+            reject(exception)
+        }
     })
 }
 
@@ -137,18 +194,23 @@ function friendScraper() {
  * Extract friend/follower list of an user
  */
 function extractFriends() {
-    if (document.getElementById('medley_header_friends')) {
-        friendScraper()
-            .then(friends => {
-                let csv = 'UserID,VanityName,UserName'
-                friends.list.forEach(friend => csv += `<br>${friend.id},${friend.vanity},${friend.name}`)
-                document.write(csv)
-            })
-            .catch(error => {
-                alert(error)
-            })
-    } else {
-        alertError('Friendlist extraction failed.', 'Please open the friends section of this user.')
+    try {
+        if (document.getElementById('medley_header_friends')) {
+            friendScraper()
+                .then(friends => {
+                    let csv = 'UserID,VanityName,UserName'
+                    friends.list.forEach(friend => csv += `<br>${friend.id},${friend.vanity},${friend.name}`)
+                    document.write(csv)
+                })
+                .catch(error => {
+                    throw error
+                })
+        } else {
+            throw 'Friendlist extraction failed. Cannot find selectors.'
+        }
+    } catch (exception) {
+        console.log(exception)
+        alert('Please open the friends section of this user.\nSee console log for details.')
     }
 }
 
@@ -157,47 +219,65 @@ function extractFriends() {
  */
 function photoScraper() {
     return new Promise((resolve, reject) => {
-        let scrollContent = setInterval(() => {
-            window.scrollBy(0, document.body.scrollHeight)
+        try {
+            toggleLoaderImg()
 
-            if (document.querySelector('div#pagelet_timeline_medley_videos')) {
-                clearInterval(scrollContent)
+            let scrollContent = setInterval(() => {
                 window.scrollBy(0, document.body.scrollHeight)
-                window.scrollTo(0, 0)
 
-                // Fetch URL of all photos
-                const collection = document.querySelector('div#pagelet_timeline_medley_photos')
-                const photos = collection.querySelectorAll('li.fbPhotoStarGridElement')
-                let counter = 0
-                let album = []
+                if (document.querySelector('div#pagelet_timeline_medley_videos')) {
+                    clearInterval(scrollContent)
+                    window.scrollBy(0, document.body.scrollHeight)
+                    window.scrollTo(0, 0)
 
-                if (!photos.length) resolve(album)
+                    // Fetch URL of all photos
+                    const collection = document.querySelector('div#pagelet_timeline_medley_photos')
+                    const photos = collection.querySelectorAll('li.fbPhotoStarGridElement')
+                    let counter = 0
+                    let album = []
 
-                photos.forEach(photo => {
-                    album.push(photo.getAttribute('data-starred-src'))
+                    if (!photos.length) resolve(album)
 
-                    counter += 1
-                    if (counter >= photos.length) resolve(album)
-                })
-            }
-        }, 100)
+                    photos.forEach(photo => {
+                        album.push(photo.getAttribute('data-starred-src'))
+                        counter += 1
+
+                        if (counter >= photos.length) {
+                            toggleLoaderImg()
+                            resolve(album)
+                        }
+                    })
+                }
+            }, 100)
+        } catch (exception) {
+            reject(exception)
+        }
     })
+
 }
 
 /**
  * Expand hidden content like comments etc.
  */
 function downloadPhotos() {
-    if (document.getElementById('pagelet_timeline_medley_photos')) {
-        photoScraper()
-            .then(photos => {
-                let album = `<h1>Photos of ${getUsername()}</h1>`
-                album += `<h3>Please save website to your computer (Ctrl+S) to download all photos.</h3>`
-                photos.forEach(photo => album += `<img src="${photo}" style="max-width: 400px">`)
-                document.write(album)
-            })
-    } else {
-        alertError('Photo extraction failed.', 'Please open the photos section of this user.')
+    try {
+        if (document.getElementById('pagelet_timeline_medley_photos')) {
+            photoScraper()
+                .then(photos => {
+                    let album = `<h1>Photos of ${getUsername()}</h1>`
+                    album += `<h3>Please save website to your computer (Ctrl+S) to download all photos.</h3>`
+                    photos.forEach(photo => album += `<img src="${photo}" style="max-width: 400px">`)
+                    document.write(album)
+                })
+                .catch(error => {
+                    throw error
+                })
+        } else {
+            throw 'Photo extraction failed. Cannot find selectors.'
+        }
+    } catch (exception) {
+        console.log(exception)
+        alert('Please open the photos section of this user.\nSee console log for details.')
     }
 }
 
@@ -221,7 +301,9 @@ function hide(cssSelector) {
                 element.style.display = 'none'
             }
         })
-    } catch (exception) {}
+    } catch (exception) {
+        console.log(exception)
+    }
 }
 
 /**
@@ -238,6 +320,10 @@ function clearTimeline() {
     hide('div#timeline_sticky_header_container')
     hide('ul[data-referrer="timeline_light_nav_top"]')
     hide('div#pagelet_escape_hatch') // Follow profile
+    hide('a[href="/subscriptions/suggestions/"]') // "Find People to Follow" link
+    hide('a[ajaxify*="/ajax/follow/follow_profile.php"]') // Follow button in followers list
+    hide('a[href="/find-friends/browser/"]:parent') // "Friend Requests / Find Friends" buttons
+    hide('button[aria-label="Manage"]:parent') // Manage sections button
     hide('div#pagelet_pymk_timeline')
     hide('div#pagelet_timeline_composer')
     // Add more elements here...
@@ -246,17 +332,19 @@ function clearTimeline() {
 /**
  * Insert toolkit menu item and flyout into Facebook bluebar
  */
-async function init() {
-    new Promise((resolve, reject) => {
-        try {
-            function hide() { alert(1) }
+function init() {
+    try {
+        return new Promise((resolve, reject) => {
             const menuItem = document.querySelector('div[role="navigation"] > div')
             const newItem = document.createElement('div')
 
             newItem.classList.add('_4kny', '_2s24')
             newItem.innerHTML = `<!--Facebook Toolkit by RootDev4-->
                 <div class="uiToggle _cy7 _3nzl">
-                    <a class="_2s25" rel="toggle" href="#" role="button" data-target="fbToolkitFlyout">Toolkit</a>
+                    <a class="_2s25" rel="toggle" href="#" role="button" data-target="fbToolkitFlyout">
+                        <img src="${fbLoaderImg}" class="hidden_elem" style="margin-right: 8px;" id="fbToolkitImg">
+                        <span>Toolkit</span>
+                    </a>
                     <div class="__tw toggleTargetClosed _3nzk" role="dialog" id="fbToolkitFlyout" style="margin: 5px 10px 0 0; width: 160px">
                         <div class="beeperNub"></div>
                         <ul style="padding: 10px">
@@ -278,33 +366,39 @@ async function init() {
                 </div>`
 
             resolve(menuItem.appendChild(newItem))
-        } catch (exception) {
-            reject(exception)
-        }
-    })
+        })
+    } catch (exception) {
+        reject(exception)
+    }
 }
 
 /**
  * Run Facebook toolkit and add click listeners after initialization
  */
 window.onload = () => {
-    if (document.getElementById('pagelet_timeline_main_column')) {
-        init().then(() => {
+    try {
+        if (document.getElementById('pagelet_timeline_main_column')) {
+            init()
+                .then(() => {
+                    // Close flyout menu on menu item click
+                    const flyout = document.querySelector('a[data-target="fbToolkitFlyout"]')
+                    const menuItems = document.querySelectorAll('a[id^="fbToolkit"]')
+                    menuItems.forEach(item => item.addEventListener('click', () => flyout.click()))
 
-            // Close flyout menu on menu item click
-            const flyout = document.querySelector('a[data-target="fbToolkitFlyout"]')
-            const menuItems = document.querySelectorAll('a[id^="fbToolkit"]')
-            menuItems.forEach(item => item.addEventListener('click', () =>  flyout.click()))
-
-            // Add click event listener to every menu item
-            document.querySelector('a#fbToolkitUserId').addEventListener('click', () => alert(getUserId()))
-            document.querySelector('a#fbToolkitIdCover').addEventListener('click', () => showUserId())
-            document.querySelector('a#fbToolkitScroll').addEventListener('click', () => scrollTimeline())
-            document.querySelector('a#fbToolkitExpand').addEventListener('click', () => expandTimeline())
-            document.querySelector('a#fbToolkitFriends').addEventListener('click', () => extractFriends())
-            document.querySelector('a#fbToolkitPhotos').addEventListener('click', () => downloadPhotos())
-            document.querySelector('a#fbToolkitClear').addEventListener('click', () => clearTimeline())
-
-        }).catch(exception => alertError(exception, 'Facebook Toolkit failed. Please reload page.'))
+                    // Add click event listener to every menu item
+                    document.querySelector('a#fbToolkitUserId').addEventListener('click', () => alert(getUserId()))
+                    document.querySelector('a#fbToolkitIdCover').addEventListener('click', () => showUserId())
+                    document.querySelector('a#fbToolkitScroll').addEventListener('click', () => scrollTimeline())
+                    document.querySelector('a#fbToolkitExpand').addEventListener('click', () => expandTimeline())
+                    document.querySelector('a#fbToolkitFriends').addEventListener('click', () => extractFriends())
+                    document.querySelector('a#fbToolkitPhotos').addEventListener('click', () => downloadPhotos())
+                    document.querySelector('a#fbToolkitClear').addEventListener('click', () => clearTimeline())
+                }).catch(exception => {
+                    throw exception
+                })
+        }
+    } catch (exception) {
+        console.log(exception)
+        alert('Facebook Toolkit failed, please reload page.\nSee console log for details.')
     }
 }

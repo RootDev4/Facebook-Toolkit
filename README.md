@@ -5,7 +5,7 @@ JavaScript Userscript for Facebook automation.
 
 ## Usage
 
-Install browser addon Greasemonkey or Tampermonkey, I'm recommending Google Chrome browser at this point. After installation, open the [script file](https://github.com/RootDev4/Facebook-Toolkit/blob/master/fbtoolkit.user.js) in your browser (GitHub) and click the **Raw** button. The user script gets installed automatically by Greasemonkey/Tampermonkey addon. Facebook Toolkit is now accessible from the bluebar. Visit any Facebook user profile to test.
+Install browser addon Greasemonkey or Tampermonkey (I recommend to use Google Chrome browser). After installation, open [fbtoolkit.user.js script file](https://github.com/RootDev4/Facebook-Toolkit/blob/master/fbtoolkit.user.js) and click the **Raw** button. The user script gets installed automatically by Greasemonkey/Tampermonkey addon. Facebook Toolkit is now accessible from the bluebar. Visit any Facebook user profile to test.
 
 ## Troubleshooting
 
